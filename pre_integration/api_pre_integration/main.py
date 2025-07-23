@@ -45,15 +45,17 @@ LABEL = [
 ]
 
 SQL_WARNING_QUERY = """
-with tmp as (
-    SELECT COUNT(case when modified_class is not null then 1 end)::FLOAT as modified_prediction
-    , (case when COUNT(case when modified_class is null then 1 end) = 0 then 1 else COUNT(case when modified_class is null then 1 end) end)::FLOAT as correct_prediction
-    FROM public.past_prediction
-    where modified_at >= NOW() - INTERVAL '1 day' OR (modified_at is null and insertion_timestamp >= NOW() - INTERVAL '1 day')
-)
-select *, modified_prediction / (modified_prediction + correct_prediction) as percentage_modified
-from tmp;
-"""
+                    with tmp as (SELECT COUNT(case when modified_class is not null then 1 end)::FLOAT as modified_prediction
+    , (case
+                                                                                                         when COUNT(case when modified_class is null then 1 end) = 0
+                                                                                                             then 1
+                                                                                                         else COUNT(case when modified_class is null then 1 end) end) ::FLOAT as correct_prediction
+                                 FROM public.past_prediction
+                                 where modified_at >= NOW() - INTERVAL '1 day' OR (modified_at is null and insertion_timestamp >= NOW() - INTERVAL '1 day')
+                        )
+                    select *, modified_prediction / (modified_prediction + correct_prediction) as percentage_modified
+                    from tmp; \
+                    """
 
 # Email configuration
 SENDER = "nguengoclam19@gmail.com"
@@ -85,6 +87,7 @@ class MobileNetV3(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = True
 
+
 # Instantiate and load weights with error handling
 model_path = "models/mobilenet_transfer_v1_model.pth"
 if not os.path.exists(model_path):
@@ -99,6 +102,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
+
 # Load database credentials
 def load_db_connection(dotenv_path="web_app_pre_integration/.env"):
     load_dotenv(dotenv_path=dotenv_path)
@@ -110,6 +114,7 @@ def load_db_connection(dotenv_path="web_app_pre_integration/.env"):
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     return DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
+
 def get_connection():
     DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection(".env")
     return psycopg2.connect(
@@ -120,6 +125,7 @@ def get_connection():
         password=DB_PASSWORD
     )
 
+
 def load_cloud_config(dotenv_path=".env"):
     load_dotenv(dotenv_path=dotenv_path)
     CLOUD_NAME = os.getenv("CLOUD_NAME")
@@ -127,10 +133,12 @@ def load_cloud_config(dotenv_path=".env"):
     CLOUD_SECRET = os.getenv("CLOUD_SECRET")
     return CLOUD_NAME, CLOUD_KEY, CLOUD_SECRET
 
+
 def load_sender_pwd(dotenv_path="web_app_pre_integration/.env"):
     load_dotenv(dotenv_path=dotenv_path)
     SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
     return SENDER_PASSWORD
+
 
 def upload_image_to_cloudinary(cloud_name, api_key, api_secret, image_bytes):
     unique_name = f"predictions/{uuid.uuid4()}"
@@ -145,14 +153,17 @@ def upload_image_to_cloudinary(cloud_name, api_key, api_secret, image_bytes):
     # The public URL of the uploaded image
     return result['secure_url']
 
+
 class LoginRequest(BaseModel):
     email: str
     password: str  # Ideally, you'd hash passwords and verify securely
+
 
 class PredictRequest(BaseModel):
     user_id: int
     user_role: str
     image: Any  # You might want to replace Any with a more specific type or Base64 string
+
 
 class CorrectionRequest(BaseModel):
     prediction_id: int
@@ -180,8 +191,7 @@ def log_prediction(user_id: int, image_uri: str, prediction: int, class_name: st
                 cursor.execute(
                     '''
                     INSERT INTO past_prediction (user_id, image_uri, prediction, class_name)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING prediction_id
+                    VALUES (%s, %s, %s, %s) RETURNING prediction_id
                     ''',
                     (user_id, image_uri, prediction, class_name)
                 )
@@ -214,6 +224,7 @@ def send_warning_email(sender, sender_password, receiver, subject, body, sender_
         print(f"Error sending email: {e}")
         return False
 
+
 def build_url(base_url, path='', params=None):
     """
     Constructs a URL with optional path and query parameters.
@@ -228,6 +239,7 @@ def build_url(base_url, path='', params=None):
         query_string = urlencode(params)
         full_url = f"{full_url}?{query_string}"
     return full_url
+
 
 def demo_email_sender_task():
     url = build_url('http://localhost:8000', 'check_model')
@@ -263,7 +275,8 @@ async def login_user(credentials: LoginRequest):
                 if user:
                     user_id, user_name, hashed_password, user_role = user
                     if bcrypt.checkpw(credentials.password.encode('utf-8'), hashed_password.encode('utf-8')):
-                        json_out = {"user_id": user["user_id"], "user_name": user["user_name"], "user_role": user["user_role"]}
+                        json_out = {"user_id": user["user_id"], "user_name": user["user_name"],
+                                    "user_role": user["user_role"]}
                         return json_out
                     else:
                         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -292,7 +305,7 @@ async def predict_handler(predict_payload: PredictRequest):
     prediction_id = log_prediction(
         user_id=predict_payload.user_id,
         image_uri=image_uri,
-        prediction=prediction+1,
+        prediction=prediction + 1,
         class_name=class_name
     )
 
@@ -306,6 +319,7 @@ async def predict_handler(predict_payload: PredictRequest):
         ]
     }
 
+
 @app.post("/report_mistake")
 async def report_mistake(report_payload: CorrectionRequest):
     try:
@@ -314,9 +328,9 @@ async def report_mistake(report_payload: CorrectionRequest):
                 cursor.execute(
                     '''
                     UPDATE past_prediction
-                    SET modified_class = %s,
+                    SET modified_class      = %s,
                         modified_class_name = %s,
-                        modified_at = now()
+                        modified_at         = now()
                     WHERE prediction_id = %s
                     ''',
                     (report_payload.correct_class_id, report_payload.correct_class_name, report_payload.prediction_id)
@@ -326,6 +340,7 @@ async def report_mistake(report_payload: CorrectionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating prediction: {str(e)}")
 
+
 @app.get("/past_predictions")
 async def get_past_predictions(user_id: int = Query(...), user_role: str = Query(...)):
     try:
@@ -333,12 +348,19 @@ async def get_past_predictions(user_id: int = Query(...), user_role: str = Query
             with conn.cursor(cursor_factory=DictCursor) as cursor:
                 cursor.execute(
                     '''
-                    SELECT pp.prediction_id, pp.user_id, pp.image_uri, pp.prediction,
-                           pp.class_name, pp.insertion_timestamp, pp.modified_class,
-                           pp.modified_class_name, pp.modified_at
+                    SELECT pp.prediction_id,
+                           pp.user_id,
+                           pp.image_uri,
+                           pp.prediction,
+                           pp.class_name,
+                           pp.insertion_timestamp,
+                           pp.modified_class,
+                           pp.modified_class_name,
+                           pp.modified_at
                     FROM past_prediction pp
-                    JOIN "user" u ON pp.user_id = u.user_id
-                    WHERE pp.user_id = %s OR u.user_role = %s
+                             JOIN "user" u ON pp.user_id = u.user_id
+                    WHERE pp.user_id = %s
+                       OR u.user_role = %s
                     ORDER BY pp.insertion_timestamp DESC
                     ''',
                     (int(user_id), user_role)
@@ -384,6 +406,7 @@ FROM YOUR FRIENDLY BOT
         return JSONResponse(return_json, status_code=200)
     else:
         return JSONResponse({'message': 'Not Found'}, status_code=404)
+
 
 scheduler = BackgroundScheduler()
 
