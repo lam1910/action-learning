@@ -11,3 +11,6 @@ cloudinary~=1.44
 fastapi~=0.116
 fastapi-cli~=0.0
 fastapi-core~=0.116
+pytorch~=2.5
+torchvision ~=0.20
+apscheduler~=3.10
