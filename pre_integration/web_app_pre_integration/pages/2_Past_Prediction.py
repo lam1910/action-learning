@@ -35,6 +35,10 @@ def build_url(base_url, path='', params=None):
     return full_url
 
 
+def clicky_link(text, content):
+    return f"<a href='{text}' target='_blank'>{content}</a>"
+
+
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
@@ -43,13 +47,12 @@ if not st.session_state.logged_in:
     st.subheader("🔒 Protected Content")
     st.warning('Please go back to main page to login')
 else:
-    # TODO: Cath load straight to end point (DONE)
     try:
         base_url = st.session_state['base_url']
         labels = st.session_state['labels']
         user_id = int(st.session_state['user_id'])
         user_role = 'micro'
-        query_params = {'user_id': user_id, 'user_role': user_role}
+        query_params = {'user_id': user_id, 'user_role': user_role, 'start_date': start_date, 'end_date': end_date}
         url = build_url(base_url, path=END_POINT, params=query_params)
     except KeyError as err:
         st.warning('It seems like you are bypassing the main page. Please return to the main page first')
@@ -57,31 +60,34 @@ else:
         labels = {-1: 'dummy'}
         st.error(traceback.format_exc())
 
-    # TODO: get data from API and display
     try:
         response = requests.get(url)
         result_code = response.status_code
         response_result = response.text
         if result_code // 100 < 4:
-            st.success("Request successful")
             # Wrap the string in a StringIO object
             response_result = StringIO(response_result)
             df_out = pd.read_json(response_result, orient='records')
-            # Convert 'insertion_timestamp' to datetime
-            df_out['insertion_timestamp'] = pd.to_datetime(df_out['insertion_timestamp'])
-            filtered_df = df_out.copy(deep=True)
-            # Filter data based on date input
-            try:
-                filtered_df = filtered_df[(filtered_df['insertion_timestamp'] >= pd.to_datetime(start_date)) & (
-                        filtered_df['insertion_timestamp'] <= pd.to_datetime(end_date))]
-                filtered_df = filtered_df.reset_index(drop=True)
-            except KeyError as k_err:
-                st.warning('Something wrong with the output table. Please contact support.')
-                st.warning(traceback.format_exc())
-            except Exception as err:
-                st.warning('Something wrong with the date range. Please check your range or contact support.')
-                st.warning(traceback.format_exc())
-            st.write(filtered_df)
+            if not df_out.empty:
+                # Convert 'insertion_timestamp' to datetime
+                df_out['insertion_timestamp'] = pd.to_datetime(df_out['insertion_timestamp'])
+                df_out['modified_at'] = pd.to_datetime(df_out['modified_at'])
+                df_out['image_uri'] = df_out.apply(
+                    lambda row: clicky_link(
+                        row["image_uri"],
+                        row["modified_class_name"] if pd.notnull(row["modified_class_name"]) else row["class_name"]
+                    ), axis=1
+                )
+                df_out = df_out.drop(columns=['prediction', 'modified_class'])
+                st.markdown(
+                    df_out.to_html(escape=False, index=False),
+                    unsafe_allow_html=True
+                )
+            else:
+                st.warning(
+                    f"No prediction found from {start_date} to {end_date} for {st.session_state['user_name']} and the "
+                    f"micro-processor"
+                )
         else:
             st.error("Request failed")
     except Exception as e:

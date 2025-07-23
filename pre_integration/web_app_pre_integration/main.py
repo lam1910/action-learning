@@ -1,10 +1,5 @@
-import os
-
-import bcrypt
-import psycopg2
 import requests
 import streamlit as st
-from dotenv import load_dotenv
 
 LABEL = [
     'airplane',
@@ -19,29 +14,6 @@ LABEL = [
     'truck',
     'other'
 ]
-
-
-# Load database credentials
-def load_db_connection(dotenv_path="web_app_pre_integration/.env"):
-    load_dotenv(dotenv_path=dotenv_path)
-
-    DB_HOST = os.getenv("DB_HOST")
-    DB_PORT = os.getenv("DB_PORT")
-    DB_NAME = os.getenv("DB_NAME")
-    DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    return DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-
-
-def get_connection():
-    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection("web_app_pre_integration/.env")
-    return psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
-    )
 
 
 def authenticate_user(email, password):
@@ -69,8 +41,8 @@ def main():
         st.session_state['labels'] = LABELS
     if 'base_url' not in st.session_state:
         st.session_state['base_url'] = BASE_URL
-    if 'corrected__class_id' not in st.session_state:
-        st.session_state['corrected_class_id'] = 0
+    if 'corrected_class_name' not in st.session_state:
+        st.session_state['corrected_class_name'] = 'other'
     if "report_comment" not in st.session_state:
         st.session_state['report_comment'] = ""
     if 'user_id' not in st.session_state:
