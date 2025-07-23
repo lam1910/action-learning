@@ -40,7 +40,7 @@ if 'logged_in' not in st.session_state:
 
 if not st.session_state.logged_in:
     st.markdown("---")
-    st.subheader("🔓 Protected Content")
+    st.subheader("🔒 Protected Content")
     st.warning('Please go back to main page to login')
 else:
     # TODO: Cath load straight to end point (DONE)
