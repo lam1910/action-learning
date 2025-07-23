@@ -1,8 +1,10 @@
+import os
+
 import bcrypt
 import psycopg2
+import requests
 import streamlit as st
 from dotenv import load_dotenv
-import os
 
 LABEL = [
     'airplane',
@@ -42,31 +44,14 @@ def get_connection():
     )
 
 
-def register_user(user_name, email, password, user_role):
-    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-                   INSERT INTO "user" (user_name, email, password, user_role)
-                   VALUES (%s, %s, %s, %s)
-                   """, (user_name, email, hashed, user_role))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-
 def authenticate_user(email, password):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id, user_name, password, user_role FROM \"user\" WHERE email = %s", (email,))
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
-
-    if result:
-        user_id, user_name, hashed_password, user_role = result
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
-            return {"user_id": user_id, "user_name": user_name, "user_role": user_role}
+    response = requests.post('http://localhost:8000/login', json={'email': email, 'password': password})
+    if response.status_code == 200:
+        resp = response.json()
+        st.session_state['logged_in'] = True
+        st.session_state['user_id'] = resp['user_id']
+        st.session_state['user_role'] = resp['user_role']
+        return {'user_id': resp['user_id'], 'user_name': resp['user_name'], 'user_role': resp['user_role']}
     return None
 
 
@@ -130,7 +115,6 @@ def main():
         st.markdown("---")
         st.subheader("🔓 Protected Content")
         st.write(f"Hello **{st.session_state['user_name']}**, you are logged in.")
-
 
 
 if __name__ == "__main__":
