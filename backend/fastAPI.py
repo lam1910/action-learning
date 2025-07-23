@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -14,7 +15,7 @@ from datetime import datetime
 from torchvision import models
 import torch.nn as nn
 import torch.nn.functional as F
-from configFiles.config import DB_CONFIG
+from config import DB_CONFIG
 from fastapi.staticfiles import StaticFiles
 
 # Define your custom MobileNetV3 class
@@ -41,7 +42,7 @@ class MobileNetV3(nn.Module):
             param.requires_grad = True
 
 # Instantiate and load weights with error handling
-model_path = "./models/mobilenet_transfer_v1_model.pth"
+model_path = "models/mobilenet_transfer_v1_model.pth"
 if not os.path.exists(model_path):
     raise FileNotFoundError(f"Model file {model_path} not found")
 model = MobileNetV3()
@@ -65,7 +66,7 @@ app.add_middleware(
 )
 
 # Serve images from the ./images directory at the /images URL path
-app.mount("/images", StaticFiles(directory="./images"), name="images")
+app.mount("/images", StaticFiles(directory="images"), name="images")
 
 class MistakeReport(BaseModel):
     image_id: int
