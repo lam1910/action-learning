@@ -1,23 +1,18 @@
+import base64
 import traceback
 
-import numpy as np
-import streamlit as st
 import requests
-import pandas as pd
-from urllib.parse import urlencode, urlunparse
-import json
-import base64
-
-
-from PIL import Image
+import streamlit as st
 
 END_POINT = "predict"
 
 st.set_page_config(page_title="Predict (User Input)", page_icon="✍️")
 
+
 def upload_image():
     img = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
     return img
+
 
 def parse_img(uploaded_img):
     # TODO: actual code to parse an image to API
@@ -25,6 +20,7 @@ def parse_img(uploaded_img):
     # Convert the image to a NumPy array
     # image_array = np.array(image)
     return base64_img
+
 
 def submit_on_click(prediction_id):
     corrected_class_id = st.session_state["corrected_class_id"]
@@ -76,7 +72,8 @@ else:
         st.image(uploaded_img, use_container_width=True)
         # TODO: Feed to API (DONE)
         if st.button("Predict"):
-            payload = {'user_id': st.session_state['user_id'], 'user_role': st.session_state['user_role'], 'image': parse_img(uploaded_img)}
+            payload = {'user_id': st.session_state['user_id'], 'user_role': st.session_state['user_role'],
+                       'image': parse_img(uploaded_img)}
             response = requests.post(url, json=payload)
             if response.status_code // 100 < 4:
                 st.success("Your image was successfully parsed and sent to the API!")

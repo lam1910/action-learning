@@ -1,9 +1,10 @@
+import os
+
 import bcrypt
 import psycopg2
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-import os
 
 LABEL = [
     'airplane',
@@ -127,7 +128,6 @@ def main():
         st.markdown("---")
         st.subheader("🔓 Protected Content")
         st.write(f"Hello **{st.session_state['user_name']}**, you are logged in.")
-
 
 
 if __name__ == "__main__":

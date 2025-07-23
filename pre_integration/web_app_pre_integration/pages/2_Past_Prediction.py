@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from io import StringIO
 from urllib.parse import urljoin, urlencode
 
-import streamlit as st
 import pandas as pd
 import requests
+import streamlit as st
 
 END_POINT = "past_predictions"
 
