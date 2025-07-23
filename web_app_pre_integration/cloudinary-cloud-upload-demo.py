@@ -9,7 +9,7 @@ import streamlit as st
 
 
 # Load database credentials
-def load_cloud_config(dotenv_path="web_app/.env"):
+def load_cloud_config(dotenv_path="web_app_pre_integration/.env"):
     load_dotenv(dotenv_path=dotenv_path)
     CLOUD_NAME = os.getenv("CLOUD_NAME")
     CLOUD_KEY = os.getenv("CLOUD_KEY")

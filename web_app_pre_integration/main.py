@@ -20,7 +20,7 @@ LABEL = [
 
 
 # Load database credentials
-def load_db_connection(dotenv_path="web_app/.env"):
+def load_db_connection(dotenv_path="web_app_pre_integration/.env"):
     load_dotenv(dotenv_path=dotenv_path)
 
     DB_HOST = os.getenv("DB_HOST")
@@ -32,7 +32,7 @@ def load_db_connection(dotenv_path="web_app/.env"):
 
 
 def get_connection():
-    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection("web_app/.env")
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection("web_app_pre_integration/.env")
     return psycopg2.connect(
         host=DB_HOST,
         port=DB_PORT,

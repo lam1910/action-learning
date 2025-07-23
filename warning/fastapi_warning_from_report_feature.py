@@ -29,7 +29,7 @@ from tmp;
 """
 
 # Load database credentials
-def load_db_connection(dotenv_path="web_app/.env"):
+def load_db_connection(dotenv_path="web_app_pre_integration/.env"):
     load_dotenv(dotenv_path=dotenv_path)
 
     DB_HOST = os.getenv("DB_HOST")
@@ -40,13 +40,13 @@ def load_db_connection(dotenv_path="web_app/.env"):
     SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
     return DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
-def load_sender_pwd(dotenv_path="web_app/.env"):
+def load_sender_pwd(dotenv_path="web_app_pre_integration/.env"):
     load_dotenv(dotenv_path=dotenv_path)
     SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
     return SENDER_PASSWORD
 
 def get_connection():
-    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection("web_app/.env")
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection("web_app_pre_integration/.env")
     return psycopg2.connect(
         host=DB_HOST,
         port=DB_PORT,
@@ -117,7 +117,7 @@ scheduler.start()
 
 @app.get("/check_model")
 def email_sender():
-    sender_password = load_sender_pwd(dotenv_path="web_app/.env")
+    sender_password = load_sender_pwd(dotenv_path="web_app_pre_integration/.env")
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(SQL_WARNING_QUERY)
