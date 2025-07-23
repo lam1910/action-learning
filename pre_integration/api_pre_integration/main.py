@@ -140,6 +140,19 @@ def load_sender_pwd(dotenv_path="web_app_pre_integration/.env"):
     return SENDER_PASSWORD
 
 
+def register_user(user_name, email, password, user_role):
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                   INSERT INTO "user" (user_name, email, password, user_role)
+                   VALUES (%s, %s, %s, %s)
+                   """, (user_name, email, hashed, user_role))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
 def upload_image_to_cloudinary(cloud_name, api_key, api_secret, image_bytes):
     unique_name = f"predictions/{uuid.uuid4()}"
     result = cloudinary.uploader.upload(

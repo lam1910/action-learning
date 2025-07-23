@@ -44,19 +44,6 @@ def get_connection():
     )
 
 
-def register_user(user_name, email, password, user_role):
-    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-                   INSERT INTO "user" (user_name, email, password, user_role)
-                   VALUES (%s, %s, %s, %s)
-                   """, (user_name, email, hashed, user_role))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-
 def authenticate_user(email, password):
     response = requests.post('http://localhost:8000/login', json={'email': email, 'password': password})
     if response.status_code == 200:
