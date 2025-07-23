@@ -3,6 +3,7 @@ import io
 import os
 import smtplib
 import uuid
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.utils import formataddr
 from typing import Any
@@ -44,18 +45,14 @@ LABEL = [
     'other'
 ]
 
-SQL_WARNING_QUERY = """
-                    with tmp as (SELECT COUNT(case when modified_class is not null then 1 end)::FLOAT as modified_prediction
-    , (case
-                                                                                                         when COUNT(case when modified_class is null then 1 end) = 0
-                                                                                                             then 1
-                                                                                                         else COUNT(case when modified_class is null then 1 end) end) ::FLOAT as correct_prediction
-                                 FROM public.past_prediction
-                                 where modified_at >= NOW() - INTERVAL '1 day' OR (modified_at is null and insertion_timestamp >= NOW() - INTERVAL '1 day')
-                        )
-                    select *, modified_prediction / (modified_prediction + correct_prediction) as percentage_modified
-                    from tmp; \
-                    """
+SQL_WARNING_QUERY = """with tmp as (
+    SELECT COUNT(case when modified_class is not null then 1 end)::FLOAT as modified_prediction
+    , (case when COUNT(case when modified_class is null then 1 end) = 0 then 1 else COUNT(case when modified_class is null then 1 end) end) ::FLOAT as correct_prediction
+    FROM public.past_prediction
+    where modified_at >= NOW() - INTERVAL '1 day' OR (modified_at is null and insertion_timestamp >= NOW() - INTERVAL '1 day')
+    )
+select *, modified_prediction / (modified_prediction + correct_prediction) as percentage_modified
+from tmp;"""
 
 # Email configuration
 SENDER = "nguengoclam19@gmail.com"
@@ -89,7 +86,8 @@ class MobileNetV3(nn.Module):
 
 
 # Instantiate and load weights with error handling
-model_path = "models/mobilenet_transfer_v1_model.pth"
+base_dir = os.path.dirname(__file__)
+model_path = os.path.join(base_dir, "models", "mobilenet_transfer_v1_model.pth")
 if not os.path.exists(model_path):
     raise FileNotFoundError(f"Model file {model_path} not found")
 model = MobileNetV3()
@@ -103,41 +101,33 @@ transform = transforms.Compose([
 ])
 
 
-# Load database credentials
-def load_db_connection(dotenv_path="web_app_pre_integration/.env"):
+def load_config(dotenv_path=None):
+    if dotenv_path is None:
+        curr_path = os.path.dirname(__file__)
+        dotenv_path = os.path.join(curr_path, ".env")
     load_dotenv(dotenv_path=dotenv_path)
 
-    DB_HOST = os.getenv("DB_HOST")
-    DB_PORT = os.getenv("DB_PORT")
-    DB_NAME = os.getenv("DB_NAME")
-    DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    return DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
+    db_name = os.getenv("DB_NAME")
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    cloud_name = os.getenv("CLOUD_NAME")
+    cloud_key = os.getenv("CLOUD_KEY")
+    cloud_secret = os.getenv("CLOUD_SECRET")
+    sender_password = os.getenv("SENDER_PASSWORD")
+    return db_host, db_port, db_name, db_user, db_password, cloud_name, cloud_key, cloud_secret, sender_password
 
 
 def get_connection():
-    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD = load_db_connection(".env")
+    db_host, db_port, db_name, db_user, db_password, _, _, _, _ = load_config()
     return psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
+        host=db_host,
+        port=db_port,
+        dbname=db_name,
+        user=db_user,
+        password=db_password
     )
-
-
-def load_cloud_config(dotenv_path=".env"):
-    load_dotenv(dotenv_path=dotenv_path)
-    CLOUD_NAME = os.getenv("CLOUD_NAME")
-    CLOUD_KEY = os.getenv("CLOUD_KEY")
-    CLOUD_SECRET = os.getenv("CLOUD_SECRET")
-    return CLOUD_NAME, CLOUD_KEY, CLOUD_SECRET
-
-
-def load_sender_pwd(dotenv_path="web_app_pre_integration/.env"):
-    load_dotenv(dotenv_path=dotenv_path)
-    SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
-    return SENDER_PASSWORD
 
 
 def register_user(user_name, email, password, user_role):
@@ -169,13 +159,13 @@ def upload_image_to_cloudinary(cloud_name, api_key, api_secret, image_bytes):
 
 class LoginRequest(BaseModel):
     email: str
-    password: str  # Ideally, you'd hash passwords and verify securely
+    password: str
 
 
 class PredictRequest(BaseModel):
     user_id: int
     user_role: str
-    image: Any  # You might want to replace Any with a more specific type or Base64 string
+    image: Any
 
 
 class CorrectionRequest(BaseModel):
@@ -310,7 +300,7 @@ async def predict_handler(predict_payload: PredictRequest):
 
     # Step 2: Log the prediction into the database
     # Assume you generate or retrieve image_uri somewhere (local path, S3 link, etc.)
-    cloud_name, cloud_api, cloud_secret = load_cloud_config('.env')
+    _, _, _, _, _, cloud_name, cloud_api, cloud_secret, _ = load_config()
     img = io.BytesIO(img_data)
     image_uri = upload_image_to_cloudinary(cloud_name, cloud_api, cloud_secret, img)
 
@@ -355,9 +345,12 @@ async def report_mistake(report_payload: CorrectionRequest):
 
 
 @app.get("/past_predictions")
-async def get_past_predictions(user_id: int = Query(...), user_role: str = Query(...)):
+async def get_past_predictions(user_id: int = Query(...), user_role: str = Query(...), start_date: str = Query(...),
+                               end_date: str = Query(...)):
     try:
         with get_connection() as conn:
+            actual_start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            actual_end_date = datetime.strptime(end_date, '%Y-%m-%d')
             with conn.cursor(cursor_factory=DictCursor) as cursor:
                 cursor.execute(
                     '''
@@ -372,11 +365,12 @@ async def get_past_predictions(user_id: int = Query(...), user_role: str = Query
                            pp.modified_at
                     FROM past_prediction pp
                              JOIN "user" u ON pp.user_id = u.user_id
-                    WHERE pp.user_id = %s
-                       OR u.user_role = %s
+                    WHERE pp.insertion_timestamp between %s AND %s
+                      AND (pp.user_id = %s
+                        OR u.user_role = %s)
                     ORDER BY pp.insertion_timestamp DESC
                     ''',
-                    (int(user_id), user_role)
+                    (actual_start_date, actual_end_date, user_id, user_role)
                 )
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
@@ -386,7 +380,7 @@ async def get_past_predictions(user_id: int = Query(...), user_role: str = Query
 
 @app.get("/check_model")
 def email_sender():
-    sender_password = load_sender_pwd(dotenv_path=".env")
+    _, _, _, _, _, _, _, _, sender_password = load_config()
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(SQL_WARNING_QUERY)
