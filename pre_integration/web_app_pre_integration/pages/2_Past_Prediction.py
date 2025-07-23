@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 import requests
 
-END_POINT = "past-predictions"
+END_POINT = "past_predictions"
 
 st.set_page_config(page_title="Past Predictions", page_icon="📒")
 # Date input widgets
@@ -48,7 +48,7 @@ else:
         base_url = st.session_state['base_url']
         labels = st.session_state['labels']
         user_id = int(st.session_state['user_id'])
-        user_role = st.session_state['user_role']
+        user_role = 'micro'
         query_params = {'user_id': user_id, 'user_role': user_role}
         url = build_url(base_url, path=END_POINT, params=query_params)
     except KeyError as err:
@@ -67,9 +67,6 @@ else:
             # Wrap the string in a StringIO object
             response_result = StringIO(response_result)
             df_out = pd.read_json(response_result, orient='records')
-            list_pred = df_out.loc[:, 'prediction'].to_list()
-            list_group = [labels[pred] for pred in list_pred]
-            df_out['Class'] = list_group
             # Convert 'insertion_timestamp' to datetime
             df_out['insertion_timestamp'] = pd.to_datetime(df_out['insertion_timestamp'])
             filtered_df = df_out.copy(deep=True)
