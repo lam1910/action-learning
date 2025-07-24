@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from io import StringIO
 from urllib.parse import urljoin, urlencode
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 import streamlit as st
@@ -72,6 +73,11 @@ else:
                 # Convert 'insertion_timestamp' to datetime
                 df_out['insertion_timestamp'] = pd.to_datetime(df_out['insertion_timestamp'])
                 df_out['modified_at'] = pd.to_datetime(df_out['modified_at'])
+                # Class count
+                class_counts = df_out["class_name"].value_counts()
+                # count of reported as wrong and good prediction
+                reported = df_out["modified_at"].notnull().sum()
+                good_pred = df_out["modified_at"].isnull().sum()
                 df_out['image_uri'] = df_out.apply(
                     lambda row: clicky_link(
                         row["image_uri"],
@@ -83,6 +89,32 @@ else:
                     df_out.to_html(escape=False, index=False),
                     unsafe_allow_html=True
                 )
+                # Create columns
+                col1, col2 = st.columns(2)
+
+                # 1. Bar Chart: Distribution of Predicted Classes
+                with col1:
+                    fig1, ax1 = plt.subplots(figsize=(5, 4))
+                    class_counts.plot(kind="bar", color="skyblue", ax=ax1)
+                    ax1.set_title("Distribution of Predicted Classes")
+                    ax1.set_xlabel("Class Name")
+                    ax1.set_ylabel("Count")
+                    plt.xticks(rotation=45)
+                    st.pyplot(fig1)
+
+                # 2. Pie Chart: Reported vs Unreported Predictions
+                with col2:
+                    fig2, ax2 = plt.subplots(figsize=(5, 4))
+                    ax2.pie(
+                        [reported, good_pred],
+                        labels=["Reported Mistake", "Good Prediction"],
+                        autopct="%1.1f%%",
+                        colors=["#FF6F61", "#6BAED6"],
+                        startangle=140
+                    )
+                    ax2.set_title("Reported Prediction Ratio")
+                    ax2.axis("equal")
+                    st.pyplot(fig2)
             else:
                 st.warning(
                     f"No prediction found from {start_date} to {end_date} for {st.session_state['user_name']} and the "

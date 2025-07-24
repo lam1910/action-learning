@@ -12,3 +12,4 @@ fastapi~=0.116
 torch~=2.5
 torchvision ~=0.20
 apscheduler~=3.10
+matplotlib~=3.10
