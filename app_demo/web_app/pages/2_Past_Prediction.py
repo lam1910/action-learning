@@ -85,10 +85,14 @@ else:
                     ), axis=1
                 )
                 df_out = df_out.drop(columns=['prediction', 'modified_class'])
+
+                st.markdown("## Detail prediction:")
                 st.markdown(
                     df_out.to_html(escape=False, index=False),
                     unsafe_allow_html=True
                 )
+
+                st.markdown("## Overview of model performance:")
                 # Create columns
                 col1, col2 = st.columns(2)
 
