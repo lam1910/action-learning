@@ -168,6 +168,12 @@ class PredictRequest(BaseModel):
     image: Any
 
 
+class PredictionInput(BaseModel):
+    user_id: int
+    prediction_id: int
+    # image: Any # Scrapped because of the microprocessor is too weak
+
+
 class CorrectionRequest(BaseModel):
     prediction_id: int
     correct_class_id: int
@@ -413,6 +419,46 @@ FROM YOUR FRIENDLY BOT
         return JSONResponse(return_json, status_code=200)
     else:
         return JSONResponse({'message': 'Not Found'}, status_code=404)
+
+
+@app.post("/submit_prediction/")
+def submit_prediction(data: PredictionInput):
+    fixed_user_id = data.user_id
+    # db start id at 1, code at 0
+    true_class_id = data.prediction_id + 1
+
+    # Scrapped because of the limitation of the microprocessor
+    # image_data = base64.b64decode(data.image)
+    # img = io.BytesIO(image_data)
+    # _, _, _, _, _, cloud_name, cloud_api, cloud_secret, _ = load_config()
+    # image_uri = upload_image_to_cloudinary(cloud_name, cloud_api, cloud_secret, img)
+    image_uri = f"image_{uuid.uuid4().hex}.jpg"
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # Get class_name from class table
+        cur.execute("SELECT class_name FROM class WHERE class_id = %s", (true_class_id,))
+        result = cur.fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail="Invalid prediction_id: class not found")
+        class_name = result[0]
+
+        # Insert into past_prediction
+        cur.execute("""
+            INSERT INTO past_prediction (user_id, image_uri, prediction, class_name, insertion_timestamp)
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (fixed_user_id, image_uri, true_class_id, class_name))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"message": "Prediction logged successfully", "image_uri": image_uri}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 scheduler = BackgroundScheduler()
