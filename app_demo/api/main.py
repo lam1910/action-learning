@@ -422,10 +422,10 @@ FROM YOUR FRIENDLY BOT
 
 
 @app.post("/submit_prediction/")
-def submit_prediction(data: PredictionInput):
-    fixed_user_id = data.user_id
+def submit_prediction(mcr_proc_data: PredictionInput):
+    fixed_user_id = mcr_proc_data.user_id
     # db start id at 1, code at 0
-    true_class_id = data.prediction_id + 1
+    true_class_id = mcr_proc_data.prediction_id + 1
 
     # Scrapped because of the limitation of the microprocessor
     # image_data = base64.b64decode(data.image)
