@@ -41,8 +41,8 @@ class MobileNetV3(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = True
 
-# Instantiate and load weights with error handling
-model_path = "models/mobilenet_transfer_v1_model.pth"
+# Instantiate and load weights & Image Preprocessing
+model_path = "web_app_pre_integration/models/mobilenet_transfer_v1_model.pth"
 if not os.path.exists(model_path):
     raise FileNotFoundError(f"Model file {model_path} not found")
 model = MobileNetV3()
