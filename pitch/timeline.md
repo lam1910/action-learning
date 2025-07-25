@@ -1,0 +1,4 @@
+- Introduction to the problem: minute 0-1
+- Showing model demo on the micro processor, including talking through about the architechture of the CNN: minute 1-4
+- Showing one full run of the web application, including error report, and quantization processes : minute 4-6
+- Showing the warning email script and the result of simulation scheduled event: minute 6-7
