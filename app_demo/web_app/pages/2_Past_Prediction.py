@@ -53,6 +53,8 @@ else:
         labels = st.session_state['labels']
         user_id = int(st.session_state['user_id'])
         user_role = 'micro'
+        if st.session_state['user_role'] == 'admin':
+            user_role = 'admin'
         query_params = {'user_id': user_id, 'user_role': user_role, 'start_date': start_date, 'end_date': end_date}
         url = build_url(base_url, path=END_POINT, params=query_params)
     except KeyError as err:
