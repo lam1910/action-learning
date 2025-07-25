@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import DictCursor
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from starlette.responses import JSONResponse
 from torchvision import models
 from torchvision import transforms
@@ -155,6 +155,13 @@ def upload_image_to_cloudinary(cloud_name, api_key, api_secret, image_bytes):
     )
     # The public URL of the uploaded image
     return result['secure_url']
+
+
+class RegisterRequest(BaseModel):
+    user_name: str
+    email: EmailStr
+    password: str
+    user_role: str
 
 
 class LoginRequest(BaseModel):
@@ -459,6 +466,20 @@ def submit_prediction(mcr_proc_data: PredictionInput):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/register")
+async def register_handler(payload: RegisterRequest):
+    try:
+        register_user(
+            user_name=payload.user_name,
+            email=payload.email,
+            password=payload.password,
+            user_role=payload.user_role
+        )
+        return {"message": "User registered successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
 scheduler = BackgroundScheduler()
