@@ -13,3 +13,5 @@ torch~=2.5
 torchvision ~=0.20
 apscheduler~=3.10
 matplotlib~=3.10
+seaborn~=0.13
+plotly~=6.0
