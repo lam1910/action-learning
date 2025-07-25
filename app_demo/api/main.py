@@ -365,26 +365,42 @@ async def get_past_predictions(user_id: int = Query(...), user_role: str = Query
             actual_start_date = datetime.strptime(start_date, '%Y-%m-%d')
             actual_end_date = datetime.strptime(end_date, '%Y-%m-%d')
             with conn.cursor(cursor_factory=DictCursor) as cursor:
-                cursor.execute(
-                    '''
-                    SELECT pp.prediction_id,
-                           pp.user_id,
-                           pp.image_uri,
-                           pp.prediction,
-                           pp.class_name,
-                           pp.insertion_timestamp,
-                           pp.modified_class,
-                           pp.modified_class_name,
-                           pp.modified_at
-                    FROM past_prediction pp
-                             JOIN "user" u ON pp.user_id = u.user_id
-                    WHERE pp.insertion_timestamp between %s AND %s
-                      AND (pp.user_id = %s
-                        OR u.user_role = %s)
-                    ORDER BY pp.insertion_timestamp DESC
-                    ''',
-                    (actual_start_date, actual_end_date, user_id, user_role)
-                )
+                if user_role.lower() == "admin":
+                    query = '''
+                            SELECT pp.prediction_id,
+                                   pp.user_id,
+                                   pp.image_uri,
+                                   pp.prediction,
+                                   pp.class_name,
+                                   pp.insertion_timestamp,
+                                   pp.modified_class,
+                                   pp.modified_class_name,
+                                   pp.modified_at
+                            FROM past_prediction pp
+                            WHERE pp.insertion_timestamp BETWEEN %s AND %s
+                            ORDER BY pp.insertion_timestamp DESC \
+                            '''
+                    params = (actual_start_date, actual_end_date)
+                else:
+                    query = '''
+                        SELECT pp.prediction_id,
+                               pp.user_id,
+                               pp.image_uri,
+                               pp.prediction,
+                               pp.class_name,
+                               pp.insertion_timestamp,
+                               pp.modified_class,
+                               pp.modified_class_name,
+                               pp.modified_at
+                        FROM past_prediction pp
+                                 JOIN "user" u ON pp.user_id = u.user_id
+                        WHERE pp.insertion_timestamp between %s AND %s
+                          AND (pp.user_id = %s
+                            OR u.user_role = %s)
+                        ORDER BY pp.insertion_timestamp DESC
+                        '''
+                    params = (actual_start_date, actual_end_date, user_id, user_role)
+                cursor.execute(query, params)
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
     except Exception as e:
