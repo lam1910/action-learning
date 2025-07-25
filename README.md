@@ -21,6 +21,7 @@ inside a factory where multiple cameras are presented to classify objects.
 ### Installation
 
 To run this project locally, please consult these instructions
+
 1. Install Python 3.11, Postgresql 15.12
 
 2. Clone the repository:
@@ -32,7 +33,7 @@ To run this project locally, please consult these instructions
     ```bash
     cd app_demo
     ```
-   
+
 4. Install the required dependencies:
     ```bash
     pip install -r requirements.txt
@@ -40,19 +41,24 @@ To run this project locally, please consult these instructions
 
 5. Put your model at [models](app_demo/api/models) inside the api folder. Name it `mobilenet_transfer_v1_model.pth`
 
-6. Change the secret in [.env.example](app_demo/api/.env.example) to your actual credential and remove the `.example` from the name
+6. Change the secret in [.env.example](app_demo/api/.env.example) to your actual credential and remove the `.example`
+   from the name
 
 7. Run the creation DDL for the database inside your Postgresql instance
     ```bash
    psql -U <your_username> -d <your_database> -f api/db-action-learning.sql
     ```
 
-8. For actual training models, it is best to upload the notebooks, found inside [notebooks](notebooks) folder, to cloud services like [Google Colab](https://colab.research.google.com/) to train. However, we can try using set it up on your own machine using
+8. For actual training models, it is best to upload the notebooks, found inside [notebooks](notebooks) folder, to cloud
+   services like [Google Colab](https://colab.research.google.com/) to train. However, we can try using set it up on
+   your own machine using
     ```bash
    cd notebooks
    pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu121
     ```
+
 ____
+
 ### Application Usage
 
 1. Sign in
@@ -63,6 +69,7 @@ ____
 6. _(For admin privileged) Interactive overview of the system_
 
 ____
+
 ### Methodology
 
 The methodology followed in this project includes:
