@@ -1,5 +1,5 @@
 # Core DL libraries
-torch==2.3.0+cu121         # Adapt CUDA version if needed
+torch==2.8.0         # Adapt CUDA version if needed
 torchvision==0.18.0+cu121
 torchaudio==2.3.0+cu121
 
